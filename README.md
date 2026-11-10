@@ -1,5 +1,7 @@
 # Böcek Düğünü
 
+![Karadeniz köy meydanında horon çeken yöresel kıyafetli dansçılar ve davul, kemençe, zurna çalan orkestra](docs/kapak.jpg)
+
 TikTok LIVE için etkileşimli bir Karadeniz düğünü. Köy meydanında yöresel kıyafetli insanlar horon çeker; sahnede davulcu, kemençeci ve zurnacı çalar. İzleyiciler hediye gönderdikçe horona katılır, havai fişek atar, davulcu, gelin, damat ya da horon başı olur. Yorumlar, yazanın kafasının üstünde konuşma balonu olarak görünür.
 
 Sahne bir web sayfasıdır (Three.js). Yayına LIVE Studio'nun bağlantı kaynağıyla, OBS ile ya da telefondan ekran paylaşımıyla verilir. Hediye, beğeni ve yorumlar ücretsiz bir Chrome eklentisi üzerinden okunur.
