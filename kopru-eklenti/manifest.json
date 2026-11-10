@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Böcek Düğünü Köprüsü",
+  "version": "1.1.0",
+  "description": "TikTok canlı yayın sayfasındaki hediye, beğeni ve yorumları yerel Böcek Düğünü sunucusuna (localhost:3000) iletir.",
+  "host_permissions": ["https://www.tiktok.com/*", "http://localhost:3000/*"],
+  "background": { "service_worker": "arka.js" },
+  "content_scripts": [
+    { "matches": ["https://www.tiktok.com/*"], "js": ["ana.js"], "world": "MAIN", "run_at": "document_start" },
+    { "matches": ["https://www.tiktok.com/*"], "js": ["ara.js"], "run_at": "document_start" }
+  ]
+}

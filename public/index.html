@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>Böcek Düğünü</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<!-- Telefondan ekran paylaşımlı yayın: "Ana Ekrana Ekle" ile adres çubuğu olmadan tam ekran açılır -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Böcek Düğünü">
+<style>
+  /* --u: yazı ve kutu birimi. Dikeyde sahne genişliğinin %1'i; yatay telefon yayınında yüksekliğe göre */
+  :root{--u:1cqw}
+  :root.yatay{--u:.5625cqh}
+  :root.yatay #stage{aspect-ratio:auto;width:100vw;max-width:none}
+  /* Sahne her zaman 9:16; OBS tarayıcı kaynağı 1080x1920 verilir. Geniş pencerede ortalanır. */
+  html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",Helvetica,Arial,"Segoe UI",Roboto,sans-serif;color:#fff}
+  #stage{position:relative;height:100vh;aspect-ratio:9/16;max-width:100vw;margin:0 auto;overflow:hidden;container-type:size}
+  #stage canvas{display:block}
+  .label{font-weight:800;font-size:calc(2.4 * var(--u));text-shadow:0 1px 3px #000,0 0 6px #000;white-space:nowrap;pointer-events:none;text-align:center}
+  .label small{display:block;font-size:calc(1.8 * var(--u));color:#ffd166;letter-spacing:.5px}
+  /* Yorum balonu: böceğin kafasının üstünde, birkaç saniye görünür. */
+  .bubble{position:relative;background:#fff;color:#1a1a1a;font-weight:700;font-size:calc(2.3 * var(--u));line-height:1.25;padding:calc(1 * var(--u)) calc(2 * var(--u));border-radius:calc(2.2 * var(--u));max-width:calc(34 * var(--u));width:max-content;white-space:normal;text-align:center;box-shadow:0 .6cqw calc(1.6 * var(--u)) rgba(0,0,0,.35);pointer-events:none;opacity:0;transform:translateY(calc(1 * var(--u))) scale(.9);transition:opacity .2s,transform .2s}
+  .bubble.on{opacity:1;transform:none}
+  .bubble::after{content:"";position:absolute;left:50%;bottom:-calc(1.4 * var(--u));transform:translateX(-50%);border:calc(1 * var(--u)) solid transparent;border-top:calc(1.4 * var(--u)) solid #fff;border-bottom:0}
+  .pill{background:rgba(0,0,0,.55);backdrop-filter:blur(6px);border-radius:calc(3 * var(--u))}
+  /* Üst %11'i TikTok'un yayıncı şeridi kaplar; arayüz onun altından başlar. */
+  #likes{position:absolute;left:50%;transform:translateX(-50%);top:11.5cqh;padding:calc(1.2 * var(--u)) calc(4 * var(--u));font-size:calc(3.2 * var(--u));font-weight:800;white-space:nowrap}
+  #likes span{color:#ff5d8f}
+  #menu{position:absolute;right:calc(3 * var(--u));top:17.5cqh;padding:calc(1.6 * var(--u)) calc(2.6 * var(--u));min-width:calc(30 * var(--u))}
+  #menu div{display:flex;justify-content:space-between;align-items:center;gap:calc(2 * var(--u));padding:.7cqw 0;border-bottom:1px solid rgba(255,255,255,.08);font-size:calc(2.7 * var(--u))}
+  #menu div:last-child{border:0}
+  #menu b{color:#ffd166;display:flex;align-items:center;gap:calc(1 * var(--u))}
+  #menu img{width:calc(4.4 * var(--u));height:calc(4.4 * var(--u));object-fit:contain}
+  #menu i{font-style:normal;font-weight:600;color:rgba(255,255,255,.55);font-size:calc(2.3 * var(--u))}
+  /* Duyuru ekranın altında; TikTok yorumları sol altta akar, afiş ortalı ve tek satır. */
+  #banner{position:absolute;left:50%;top:80cqh;transform:translateX(-50%);background:linear-gradient(90deg,#b5121b,#e63946);padding:calc(2 * var(--u)) calc(5 * var(--u));border-radius:99px;font-size:calc(4 * var(--u));font-weight:900;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:0;transition:opacity .25s;white-space:nowrap;max-width:calc(92 * var(--u));overflow:hidden;text-overflow:ellipsis}
+  #board{position:absolute;left:50%;top:38cqh;transform:translate(-50%,-50%);padding:calc(3 * var(--u)) calc(5 * var(--u));min-width:calc(60 * var(--u));display:none}
+  #board h2{margin:0 0 calc(2 * var(--u));font-size:calc(4.4 * var(--u));color:#ffd166;text-align:center}
+  #board div{display:flex;justify-content:space-between;gap:calc(4 * var(--u));padding:.8cqw 0;font-size:calc(3.4 * var(--u))}
+  #sound{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:calc(3 * var(--u)) calc(6 * var(--u));white-space:nowrap;font-size:calc(4 * var(--u));font-weight:900;cursor:pointer;display:none}
+  #loading{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:calc(4 * var(--u))}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="stage">
+  <div id="loading">Düğün kuruluyor…</div>
+  <div id="likes" class="pill">❤️ <span id="likeRule"></span> beğeni = Horona katıl · <span id="likeCount">0</span></div>
+  <div id="menu" class="pill"></div>
+  <div id="banner"></div>
+  <div id="sound" class="pill">🔊 Müziği başlatmak için tıkla</div>
+  <div id="board" class="pill"><h2>Takı Töreni</h2><div id="rows"></div></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { clone as cloneSkinned } from 'three/addons/utils/SkeletonUtils.js';
+import { TIERS, LIKES_TO_JOIN, tierFor } from './tiers.js';
+import { horonPose } from './dance.js';
+
+const stage = document.getElementById('stage');
+// Telefon modu (?telefon): ışıma ve gölge kapalı, düşük çözünürlük — telefon ısınmasın, kare düşmesin
+const PHONE = new URLSearchParams(location.search).has('telefon') || matchMedia('(display-mode: standalone)').matches;
+// Ekran yayın boyunca kararmasın (destekleyen tarayıcılarda)
+const keepAwake = () => navigator.wakeLock?.request('screen').catch(() => {});
+keepAwake(); document.addEventListener('visibilitychange', () => { if (!document.hidden) keepAwake(); });
+// TikTok mobil oyun yayını görüntüyü yatay gönderir: telefon yan çevrilince sahne tüm ekranı kullanır
+const orient = () => document.documentElement.classList.toggle('yatay', PHONE && innerWidth > innerHeight);
+orient(); addEventListener('resize', orient);
+const W = () => stage.clientWidth, H = () => stage.clientHeight;
+
+// ---------- Sahne ----------
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x2a2140, 26, 75);
+const camera = new THREE.PerspectiveCamera(54, 9 / 16, 0.1, 200);
+camera.position.set(0, 3.9, 9.2); camera.lookAt(0, 2.4, -2.6);
+const renderer = new THREE.WebGLRenderer({ antialias: !PHONE, powerPreference: PHONE ? 'low-power' : 'high-performance' });
+renderer.setPixelRatio(PHONE ? 0.8 : Math.min(devicePixelRatio, 2));   // telefonda yayın da yanda çalışıyor: bellek ve ısı için tek piksel oranı
+renderer.shadowMap.enabled = !PHONE; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.outputColorSpace = THREE.SRGBColorSpace;
+const labels = new CSS2DRenderer();
+Object.assign(labels.domElement.style, { position: 'absolute', top: 0, left: 0, pointerEvents: 'none' });
+stage.prepend(labels.domElement); stage.prepend(renderer.domElement);
+// Son işlem: ampuller ve pencereler hafifçe ışısın (bloom), ton eşleme OutputPass'te
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.5, 0.3, 0.96); if (!PHONE) composer.addPass(bloom);
+composer.addPass(new OutputPass());
+function resize() { camera.aspect = W() / H(); camera.updateProjectionMatrix(); renderer.setSize(W(), H()); composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(W(), H()); labels.setSize(W(), H()); }
+addEventListener('resize', resize); resize();
+
+// İzleyiciden gelen metni HTML'e basmadan önce kaçışla
+const esc = (x) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const mat = (c, extra = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: .8, ...extra });
+
+// ---------- Gökyüzü ----------
+{
+  const c = document.createElement('canvas'); c.width = 4; c.height = 256; const g = c.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, '#0b1030'); grad.addColorStop(.55, '#3a2b5c'); grad.addColorStop(.8, '#c0566a'); grad.addColorStop(1, '#f2a65a');
+  g.fillStyle = grad; g.fillRect(0, 0, 4, 256);
+  const sky = new THREE.CanvasTexture(c); sky.colorSpace = THREE.SRGBColorSpace;
+  const dome = new THREE.Mesh(new THREE.SphereGeometry(120, 32, 16), new THREE.MeshBasicMaterial({ map: sky, side: THREE.BackSide, fog: false }));
+  scene.add(dome);
+  const sp = []; for (let i = 0; i < 400; i++) { const v = new THREE.Vector3().randomDirection(); if (v.y > .25) sp.push(v.multiplyScalar(110)); }
+  scene.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(sp), new THREE.PointsMaterial({ color: 0xffffff, size: .5, fog: false })));
+  const moon = new THREE.Mesh(new THREE.SphereGeometry(3, 24, 16), new THREE.MeshBasicMaterial({ color: 0xfff4d6, fog: false })); moon.position.set(-25, 45, -90); scene.add(moon);
+}
+// Işık: soğuk ay ışığı, sıcak ampul dolgusu; parlak kabuklar için ortam yansıması
+scene.add(new THREE.HemisphereLight(0x8a7fc0, 0x2a1a10, 0.5));
+const moonLight = new THREE.DirectionalLight(0xb8c4ff, 0.7); moonLight.position.set(-6, 14, 4); scene.add(moonLight);
+const key = new THREE.DirectionalLight(0xffc27a, 1.5); key.position.set(5, 10, 8); key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048); key.shadow.bias = -0.0004; Object.assign(key.shadow.camera, { left: -10, right: 10, top: 10, bottom: -10 }); scene.add(key);
+for (const [x, z] of [[-3.5, -4], [3.5, -4], [-4, 1.5], [4, 1.5]]) { const l = new THREE.PointLight(0xffb45a, 7, 11, 1.6); l.position.set(x, 3.8, z); scene.add(l); }
+const pmrem = new THREE.PMREMGenerator(renderer);
+if (!PHONE) { scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.22; }
+
+// ---------- Köy ve çalgılar (Blender: blender/koy.py) ----------
+const loader = new GLTFLoader();
+const loadGLB = (url) => new Promise((ok, fail) => loader.load(url, (g) => ok(g.scene), undefined, fail));
+const [koy, calgi] = await Promise.all([loadGLB('./models/koy.glb'), loadGLB('./models/calgi.glb')]);
+koy.traverse((o) => { if (o.isMesh) { o.receiveShadow = true; o.castShadow = /masa|koltuk|cesme|sahne|kemer|kilim/.test(o.name); } });
+koy.getObjectByName('meydan').material.color.setScalar(0.62);
+// Telefonda uzaktaki evler, ağaçlar ve dağlar çizilmez: yük azalır, ısınma ve ses kesilmesi geç başlar
+if (PHONE) for (const n of ['ev5', 'ev6', 'ev7', 'ev8', 'cinar3', 'cinar4']) { const o = koy.getObjectByName(n); if (o) o.visible = false; }
+if (PHONE) koy.traverse((o) => { if (/^dag/.test(o.name)) o.visible = false; });   // pişirilmiş taş dokusu gece ışığında fazla açık kalıyor
+scene.add(koy);
+const TABLE_Z = -5.2, TABLE_X = 0.6;   // blender/koy.py ile aynı
+const STAGE = koy.getObjectByName('orkestra_sahne');
+const PROP = Object.fromEntries(['davul', 'tokmak', 'cubuk', 'zurna', 'kemence', 'kemence_yay'].map((n) => [n, calgi.getObjectByName(n)]));
+for (const p of Object.values(PROP)) p.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+// Sahne üstünde bir nokta (yerel x, z) ve oradan meydanın ortasına bakış açısı
+const stageSpot = (lx, lz) => STAGE.localToWorld(new THREE.Vector3(lx, 0.37, lz));
+const faceCenter = (p) => Math.atan2(0 - p.x, -1.4 - p.z);
+
+// ---------- Müzik ----------
+// Horon: şarkı döngüde çalar, dans vuruşu şarkının o anki temposuna (horon-tempo.json, tools/tempo.py) eşlenir.
+// OBS tarayıcı kaynağı kendiliğinden çalar; normal tarayıcı izin isterse ortada "tıkla" düğmesi çıkar.
+const MUSIC = './audio/horon.mp3', TEMPO = './audio/horon-tempo.json';   // Karadeniz horon potpurisi
+const music = new Audio(MUSIC); music.loop = true; music.preservesPitch = true;
+// iPhone: "oynatma" ses oturumu sessiz mod düğmesinden etkilenmez ve ekran yayınına ses gider (Safari 17+)
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch {}
+const tempoMap = await fetch(TEMPO).then(r => r.json()).catch(() => []);
+function bpmAt(sec) {
+  if (!tempoMap.length) return 140;
+  let i = 0; while (i < tempoMap.length - 1 && tempoMap[i + 1][0] < sec) i++;
+  const [t0, b0] = tempoMap[i], [t1, b1] = tempoMap[Math.min(i + 1, tempoMap.length - 1)];
+  return t1 > t0 && sec > t0 ? b0 + (b1 - b0) * Math.min(1, (sec - t0) / (t1 - t0)) : b0;
+}
+// Telefonda müzik tamamen indirilip bellekten çalınır; parça parça akış Wi-Fi'de takılabiliyor
+if (PHONE) fetch(MUSIC).then((r) => r.blob()).then((b) => {
+  const playing = !music.paused, t = music.currentTime;
+  music.src = URL.createObjectURL(b); music.currentTime = t;
+  if (playing) music.play().catch(() => {});
+}).catch(() => {});
+const soundBtn = document.getElementById('sound');
+const startMusic = () => music.play().then(() => { soundBtn.style.display = 'none'; }).catch(() => { soundBtn.style.display = 'block'; });
+soundBtn.onclick = startMusic; startMusic();
+
+// ---------- İnsanlar: Karadeniz kıyafetli, iskeletli modeller (Higgsfield/Meshy → blender/insan.py) ----------
+const MODELS = { erkek: await loadGLB('./models/erkek.glb'), kadin: await loadGLB('./models/kadin.glb') };
+document.getElementById('loading').remove();
+
+// Dans kodu her eklemi "kollar ve bacaklar aşağı sarkık, dönüş sıfır" duruşuna göre döndürür (böceklerdeki boş nesneler gibi).
+// Gerçek iskeletin kemikleri ise kendi açılarıyla ve kollar A duruşunda gelir. Her kemik için bir kez hesaplanan
+// A ve B çarpanlarıyla: kemik.yerel = A · Q · B   (Q = dans kodunun o eklem için istediği dönüş)
+//   B = S·W  (W: kemiğin dinlenme dünya yönelimi, S: kemiği düz aşağı/yukarı çeviren düzeltme)
+//   A = (Sₑ·Wₑ)⁻¹  (ebeveyn kemiğin aynı değeri; ebeveyn dansla oynamıyorsa yalnız Wₑ⁻¹)
+const JOINTS = {   // dans eklemi → [kemik, segmentin bittiği çocuk kemik, kemiğin düz hali]
+  shoulder_R: ['RightArm', 'RightForeArm', -1], elbow_R: ['RightForeArm', 'RightHand', -1],
+  shoulder_L: ['LeftArm', 'LeftForeArm', -1], elbow_L: ['LeftForeArm', 'LeftHand', -1],
+  hip_R: ['RightUpLeg', 'RightLeg', -1], knee_R: ['RightLeg', 'RightFoot', -1],
+  hip_L: ['LeftUpLeg', 'LeftLeg', -1], knee_L: ['LeftLeg', 'LeftFoot', -1],
+  head: ['Head', 'head_end', 1],
+};
+const RIG = {};   // model türü → { eklem: { A, B } } (bir kez hesaplanır, tüm kopyalar paylaşır)
+for (const [kind, root] of Object.entries(MODELS)) {
+  root.updateMatrixWorld(true);
+  const wq = (o) => o.getWorldQuaternion(new THREE.Quaternion()), wp = (o) => o.getWorldPosition(new THREE.Vector3());
+  const S = {}, out = {};
+  for (const [j, [bone, child, dir]] of Object.entries(JOINTS)) {
+    const bn = root.getObjectByName(bone), ch = root.getObjectByName(child);
+    const d = wp(ch).sub(wp(bn)).normalize();
+    S[bone] = new THREE.Quaternion().setFromUnitVectors(d, new THREE.Vector3(0, dir, 0));
+  }
+  for (const [j, [bone]] of Object.entries(JOINTS)) {
+    const bn = root.getObjectByName(bone), par = bn.parent;
+    const B = S[bone].clone().multiply(wq(bn));
+    const A = (S[par.name] ? S[par.name].clone().multiply(wq(par)) : wq(par)).invert();
+    out[j] = { A, B };
+  }
+  RIG[kind] = out;
+  root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });   // iskeletli ağ kutusu dansla taşar, kırpılmasın
+}
+let pickKind = 0;
+// Kemiğe (0.01 ölçekli iskelet) sahne ölçüsünde bir nesne tak: ölçek ve konum iskeletin ölçeğine göre düzeltilir
+function attachTo(bone, obj, x = 0, y = 0, z = 0) {
+  bone.add(obj); bone.updateWorldMatrix(true, false);
+  const k = 1 / bone.getWorldScale(new THREE.Vector3()).x;
+  obj.scale.setScalar(k); obj.position.set(x * k, y * k, z * k);
+}
+
+function makeBug(name, kind = (pickKind++ % 2 ? 'kadin' : 'erkek')) {
+  const g = new THREE.Group();
+  const model = cloneSkinned(MODELS[kind]); g.add(model);
+  const rig = RIG[kind], bone = (n) => model.getObjectByName(n);
+  // Dans kodunun döndürdüğü vekil eklemler; her karede rig() bunları gerçek kemiklere aktarır
+  const proxy = Object.fromEntries(Object.keys(JOINTS).map((j) => [j, new THREE.Object3D()]));
+  g.userData.kind = kind;
+  g.userData.arms = {}; g.userData.legs = {};
+  for (const [k, s] of [['R', -1], ['L', 1]]) {
+    g.userData.arms[k] = { shoulder: proxy['shoulder_' + k], elbow: proxy['elbow_' + k], wrist: bone(k === 'R' ? 'RightHand' : 'LeftHand'), side: s, y0: 0 };
+    g.userData.legs[k] = { hip: proxy['hip_' + k], knee: proxy['knee_' + k], side: s };
+  }
+  g.userData.head = proxy.head;
+  g.userData.body = g;
+  const q = new THREE.Quaternion();
+  const cache = Object.fromEntries(Object.values(JOINTS).map(([bn]) => [bn, bone(bn)]));
+  g.userData.rig = () => {
+    for (const [j, [bn]] of Object.entries(JOINTS)) {
+      q.setFromEuler(proxy[j].rotation);
+      cache[bn].quaternion.copy(rig[j].A).multiply(q).multiply(rig[j].B);
+    }
+  };
+  const div = document.createElement('div'); div.className = 'label';
+  const lab = new CSS2DObject(div); lab.position.set(0, kind === 'kadin' ? 1.95 : 2.05, 0); g.add(lab);
+  g.userData.setLabel = (role) => { div.innerHTML = (role ? `<small>${role}</small>` : '') + esc(name); };  // ad izleyiciden gelir, kaçışla basılır
+  g.userData.setLabel('');
+  // Yorum balonu: izleyicinin yazdığı yorum kafasının üstünde 5 sn görünür; metin düz yazı olarak basılır.
+  const bub = document.createElement('div'); bub.className = 'bubble';
+  const bubObj = new CSS2DObject(bub); bubObj.position.set(0, 2.45, 0); g.add(bubObj);
+  let bubTimer = 0;
+  g.userData.say = (text) => {
+    const t = String(text).trim(); if (!t) return;
+    bub.textContent = t.length > 60 ? t.slice(0, 57) + '…' : t;
+    bub.classList.add('on'); clearTimeout(bubTimer);
+    bubTimer = setTimeout(() => bub.classList.remove('on'), 5000);
+  };
+  g.userData.name = name; g.userData.target = new THREE.Vector3(); g.userData.targetRot = 0; g.userData.joined = performance.now();
+  g.userData.rig();
+  scene.add(g);
+  return g;
+}
+
+// ---------- Durum ----------
+const MAX_HALAY = PHONE ? 12 : 36, SPACING = 0.68, CENTER = new THREE.Vector3(0, 0, -1.4), CIRCLE_AT = 8, ARC_R = 1.8, OUTER_R = 3.0, RING_GAP = 1.1;   // horon: sıkışık sıra
+let spin = 0, camDist = 11;   // çemberin dönüşü, kameranın çember boyuna göre geri çekilmesi
+// Yönetmen kamera: çoğunlukla genel çekim; arada orkestra / horon başı / gelin-damat yakın çekimi,
+// hediye gelince birkaç saniye gönderene döner. Geçişler yumuşak kayar.
+const cam = { pos: new THREE.Vector3(0, 4, 9), look: new THREE.Vector3(0, 1.4, -2), shot: null, until: 0, next: performance.now() + 14000 };
+function closeUp(target, secs, height = 1.45, dist = 2.6) {
+  cam.shot = target; cam.until = performance.now() + secs * 1000; cam.h = height; cam.d = dist;
+}
+const halay = [];               // [0] halay başı, hareket yönünün en önünde
+const roles = { gelin: null, damat: null, davulcu: null };
+const ROLE_KIND = { gelin: 'kadin', damat: 'erkek' };   // gelin her zaman kadın, damat erkek model
+const byUser = new Map(), scores = new Map(), likes = new Map();
+let totalLikes = 0, speed = 1, speedUntil = 0, beats = 0;
+const mendil = new THREE.Mesh(new THREE.PlaneGeometry(.45, .32), mat(0xe63946, { side: THREE.DoubleSide }));
+
+function layout() {
+  halay.forEach((b, i) => b.userData.setLabel(i === 0 ? 'HORON BAŞI' : ''));
+  const seat = { gelin: [-.6, 'GELİN'], damat: [.6, 'DAMAT'] };
+  // Gelin ve damat kendi koltuklarında oturur (oturak yüksekliği 0.45)
+  for (const k of ['gelin', 'damat']) if (roles[k]) { roles[k].userData.target.set(TABLE_X + seat[k][0], 0, TABLE_Z - .9); roles[k].userData.targetRot = 0; roles[k].userData.setLabel(seat[k][1]); }
+  // Davul her zaman sahnede: izleyici "Davulcu ol" dediyse onun böceğine, yoksa orkestranın davulcusuna geçer
+  npcDrum.visible = !roles.davulcu;
+  giveDrum(roles.davulcu ?? npcDrum);
+  if (roles.davulcu) { roles.davulcu.userData.target.copy(DRUM_SPOT); roles.davulcu.userData.targetRot = faceCenter(DRUM_SPOT); roles.davulcu.userData.setLabel('DAVULCU'); }
+}
+// ---------- Orkestra: sahnede davulcu, kemençeci, zurnacı ----------
+const DRUM_SPOT = stageSpot(-0.85, 0.15), KEMENCE_SPOT = stageSpot(0, 0.2), ZURNA_SPOT = stageSpot(0.85, 0.15);
+const npcDrum = makeBug('', 'erkek'), npcKemence = makeBug('', 'erkek'), npcZurna = makeBug('', 'erkek');
+for (const [b, spot, label] of [[npcDrum, DRUM_SPOT, 'DAVULCU'], [npcKemence, KEMENCE_SPOT, 'KEMENÇECİ'], [npcZurna, ZURNA_SPOT, 'ZURNACI']]) {
+  b.position.copy(spot); b.userData.target.copy(spot); b.rotation.y = b.userData.targetRot = faceCenter(spot); b.userData.setLabel(label);
+}
+// Zurna ağızda; kemençe göğüste dik, yay sağ elde
+npcZurna.add(PROP.zurna); PROP.zurna.position.set(0, 1.55, 0.13); PROP.zurna.rotation.x = 0.6;   // ağız hizası; kafa kemiğinin ekseni yamuk olduğundan gövdeye takılı
+npcKemence.add(PROP.kemence); PROP.kemence.position.set(0.04, 0.78, 0.26); PROP.kemence.rotation.set(0.12, 0, -0.1);
+attachTo(npcKemence.getObjectByName('RightHand'), PROP.kemence_yay, 0, -0.06, 0.02);
+// Davul göğüste, tokmak sağ elde, çubuk sol elde
+function giveDrum(b) {
+  b.userData.body.add(PROP.davul); PROP.davul.position.set(0, 1.0, 0.36); PROP.davul.scale.setScalar(0.85);
+  attachTo(b.userData.arms.R.wrist, PROP.tokmak, 0, -0.06, 0);
+  attachTo(b.userData.arms.L.wrist, PROP.cubuk, 0, -0.06, 0);
+}
+// Kemençeci: sol el sapta, sağ el yayı yatay çeker; gövde ve baş vuruşla sallanır
+function kemencePose(b) {
+  const { arms } = b.userData, bow = Math.sin(beats * Math.PI);
+  arms.L.shoulder.rotation.set(-0.7, 0, -0.35); arms.L.elbow.rotation.x = -1.5;
+  arms.R.shoulder.rotation.set(-0.55, 0, 0.15 + bow * 0.35); arms.R.elbow.rotation.x = -1.2 + bow * 0.25;
+  b.rotation.z = Math.sin(beats * Math.PI / 2) * 0.05; b.userData.head.rotation.set(0.1, Math.sin(beats * Math.PI / 4) * 0.2, 0);
+  return Math.abs(Math.sin(beats * Math.PI)) * 0.03;
+}
+// Davulcu: tokmak her vuruşta bir kez, çubuk araya tıkırtı; gövde vuruşla yaylanır
+function drumPose(b) {
+  const { arms } = b.userData, hit = Math.max(0, Math.sin(beats * Math.PI)), tik = Math.max(0, Math.sin(beats * Math.PI * 2 + 1.2));
+  arms.R.shoulder.rotation.set(-0.9 - hit * 0.7, 0, -0.35); arms.R.elbow.rotation.x = -0.9 + hit * 0.4;
+  arms.L.shoulder.rotation.set(-0.8 - tik * 0.35, 0, 0.35); arms.L.elbow.rotation.x = -1.0;
+  b.userData.head.rotation.x = hit * 0.08;
+  return Math.abs(Math.sin(beats * Math.PI)) * 0.03;
+}
+// Zurnacı: iki el ağızda, gövde vuruşla sağa sola salınır, baş havaya kalkar
+function zurnaPose(b) {
+  const { arms } = b.userData, sw = Math.sin(beats * Math.PI / 2);
+  for (const k of ['R', 'L']) { arms[k].shoulder.rotation.set(-1.05, 0, -arms[k].side * 0.5); arms[k].elbow.rotation.x = -1.0 - (k === 'R' ? 0.25 : 0); }   // iki el zurnanın üstünde, biri ağza yakın
+  b.rotation.z = sw * 0.07; b.userData.head.rotation.x = -0.12 + Math.abs(sw) * 0.08;
+  return Math.abs(Math.sin(beats * Math.PI)) * 0.02;
+}
+giveDrum(npcDrum);
+
+function removeBug(b) {
+  if (!b) return;
+  scene.remove(b); byUser.delete(b.userData.id);
+  const i = halay.indexOf(b); if (i >= 0) halay.splice(i, 1);
+  for (const k in roles) if (roles[k] === b) roles[k] = null;
+}
+function join(user, asRole) {
+  let b = byUser.get(user.id);
+  // Gelin kadın, damat erkek modelle oynar: farklı modeldeyse yeniden oluştur
+  if (b && ROLE_KIND[asRole] && b.userData.kind !== ROLE_KIND[asRole]) { removeBug(b); b = null; }
+  if (!b) { b = makeBug(user.name, ROLE_KIND[asRole]); b.userData.id = user.id; b.position.set(Math.random() < .5 ? -9 : 9, 0, 3); byUser.set(user.id, b); }  // yandan girer
+  const i = halay.indexOf(b); if (i >= 0) halay.splice(i, 1);
+  for (const k in roles) if (roles[k] === b) roles[k] = null;
+  if (asRole === 'basi') halay.unshift(b);
+  else if (asRole in roles) { if (roles[asRole]) halay.push(roles[asRole]); roles[asRole] = b; }
+  else halay.push(b);
+  while (halay.length > MAX_HALAY) removeBug(halay.slice(1).sort((x, y) => x.userData.joined - y.userData.joined)[0]);
+  layout();
+}
+
+// ---------- Havai fişek ----------
+const fireworks = [];
+// Yuvarlak, kenarı yumuşak kıvılcım dokusu
+const spark = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, 'rgba(255,255,255,1)'); r.addColorStop(.25, 'rgba(255,255,255,.85)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+function burst(x, y, z, color, n, speedMul, size) {
+  const pos = new Float32Array(n * 3), vel = [];
+  for (let i = 0; i < n; i++) { vel.push(new THREE.Vector3().randomDirection().multiplyScalar(speedMul * (.85 + Math.random() * .3))); pos.set([x, y, z], i * 3); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const m = new THREE.PointsMaterial({ color, map: spark, size, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false });
+  const p = new THREE.Points(geo, m); scene.add(p); fireworks.push({ p, vel, life: 0, max: 2.6 });
+}
+function firework(x, y, z, color) {
+  // Önce yerden yükselen roket izi, tepede iki katmanlı patlama (dış halka + iç parıltı)
+  const rocket = new THREE.Mesh(new THREE.SphereGeometry(.08, 8, 6), new THREE.MeshBasicMaterial({ color: 0xfff1c1, fog: false }));
+  rocket.position.set(x, 1, z); scene.add(rocket);
+  const t0 = performance.now(), dur = 700;
+  (function rise() {
+    const k = Math.min(1, (performance.now() - t0) / dur); rocket.position.y = 1 + (y - 1) * (1 - (1 - k) ** 2);
+    if (k < 1) return requestAnimationFrame(rise);
+    scene.remove(rocket);
+    burst(x, y, z, color, 320, 5.5, .55); burst(x, y, z, 0xffffff, 80, 2.2, .35);
+    const flash = new THREE.PointLight(color, 60, 40); flash.position.set(x, y, z); scene.add(flash); setTimeout(() => scene.remove(flash), 200);
+  })();
+}
+function fireworkShow(name) {
+  [0, 350, 700, 1100, 1500, 1900].forEach((t, i) => setTimeout(() => firework(-4 + Math.random() * 8, 9 + Math.random() * 4, -9 - Math.random() * 4, [0xff4d6d, 0xffd166, 0x06d6a0, 0x4cc9f0, 0xffffff, 0xc77dff][i]), t));
+  announce(`🎆 ${name} havai fişek attı!`);
+}
+
+// ---------- Arayüz ----------
+// Menü: katalog geldiyse her rolün fiyatındaki gerçek TikTok hediyesi (ikon + ad), yoksa sadece elmas.
+let catalog = [];
+function renderMenu() {
+  document.getElementById('menu').innerHTML = TIERS.map(t => {
+    const g = catalog.filter(x => x.diamonds >= t.min).sort((a, b) => a.diamonds - b.diamonds)[0];
+    const right = g ? `${g.image ? `<img src="${esc(g.image)}" alt="">` : ''}${esc(g.name)}<i>${g.diamonds}</i>` : `<i>${t.min}</i>`;
+    return `<div><span>${t.label}</span><b>${right}</b></div>`;
+  }).join('');
+}
+renderMenu();
+document.getElementById('likeRule').textContent = LIKES_TO_JOIN;
+const banner = document.getElementById('banner'); const queue = []; let showing = false;
+function announce(text) { queue.push(text); if (queue.length > 6) queue.shift(); if (!showing) next(); }
+function next() {
+  const t = queue.shift(); if (!t) { showing = false; banner.style.opacity = 0; return; }
+  showing = true; banner.textContent = t; banner.style.opacity = 1; setTimeout(next, 2000);
+}
+function scoreboard() {
+  const top = [...scores.values()].sort((a, b) => b.diamonds - a.diamonds).slice(0, 5);
+  if (!top.length) return;
+  document.getElementById('rows').innerHTML = top.map((s, i) => `<div><span>${['👑', '🥈', '🥉', '4.', '5.'][i]} ${esc(s.name)}</span><b>${s.diamonds}</b></div>`).join('');
+  const board = document.getElementById('board'); board.style.display = 'block';
+  announce(`👑 Düğün sahibi: ${top[0].name}!`);
+  setTimeout(() => { board.style.display = 'none'; }, 15000);
+}
+setInterval(scoreboard, 5 * 60 * 1000);
+
+// ---------- Olaylar ----------
+function onEvent(ev) {
+  if (ev.type === 'catalog') { catalog = ev.gifts; renderMenu(); return; }
+  if (ev.type === 'gift') {
+    const total = ev.gift.diamonds * ev.gift.count;
+    const s = scores.get(ev.user.id) ?? { name: ev.user.name, diamonds: 0 }; s.diamonds += total; scores.set(ev.user.id, s);
+    const tier = tierFor(total); if (!tier) return;
+    announce(`💍 ${ev.user.name}'den ${ev.gift.count > 1 ? ev.gift.count + ' ' : ''}${ev.gift.name}!`);
+    if (tier.id !== 'firework') setTimeout(() => { const b = byUser.get(ev.user.id); if (b && !cam.shot && b.position.distanceTo(b.userData.target) < 0.6) closeUp(b, 4); }, 1500);   // yerine varınca gönderene dön
+    if (tier.id === 'speed') { speed = Math.min(speed + .06, 1.2); speedUntil = performance.now() + 20000; announce(`⚡ ${ev.user.name} horonu hızlandırdı!`); join(ev.user); }   // şarkı en fazla %20 hızlanır, kulağı rahatsız etmez
+    else if (tier.id === 'firework') { fireworkShow(ev.user.name); join(ev.user); }
+    else { join(ev.user, tier.id); if (tier.id !== 'join') announce(`🎉 ${ev.user.name} ${tier.label.replace(' ol', ' oldu')}!`); }
+  } else if (ev.type === 'chat') {
+    byUser.get(ev.user.id)?.userData.say(ev.text);   // yalnız halayda/rolde böceği olanın yorumu sahnede görünür
+  } else if (ev.type === 'like') {
+    totalLikes += ev.count; document.getElementById('likeCount').textContent = totalLikes;
+    const n = (likes.get(ev.user.id) ?? 0) + ev.count;
+    if (n >= LIKES_TO_JOIN && !byUser.has(ev.user.id)) { likes.set(ev.user.id, 0); join(ev.user); announce(`❤️ ${ev.user.name} beğeniyle horona katıldı!`); }
+    else likes.set(ev.user.id, n);
+  }
+}
+// Elle deneme için konsoldan: bocek.onEvent({type:'gift', user:{id:'x',name:'Test'}, gift:{name:'Taç', diamonds:299, count:1}})
+window.bocek = { onEvent, fireworkShow, music, bpmAt };
+(function connect() {
+  const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}`);
+  ws.onmessage = (m) => onEvent(JSON.parse(m.data));
+  ws.onclose = () => setTimeout(connect, 2000);
+})();
+
+// ---------- Döngü ----------
+const clock = new THREE.Clock();
+const angleLerp = (a, b, k) => a + Math.atan2(Math.sin(b - a), Math.cos(b - a)) * k;
+// Kol kola tutuşma açısı: komşular SPACING aralıklı, omuz 0.3 dışarıda, kol 0.58 uzunlukta.
+const HOLD = Math.asin(Math.min(1, Math.max(0, SPACING / 2 - .18) / .55));   // insan: omuz 0.18 dışarıda, kol 0.55
+function tick() {
+  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  if (speed > 1 && performance.now() > speedUntil) speed = Math.max(1, speed - dt * .05);
+  // Çalma hızını yalnız gerçekten değişince ve 0.05'lik adımlarla ayarla: her karede atamak iPhone Safari'de sesi takıltıyor
+  const rate = Math.round(speed * 20) / 20;
+  if (music.playbackRate !== rate) music.playbackRate = rate;
+  beats += dt * bpmAt(music.currentTime) / 60 * speed;   // bir adım = bir vuruş; tüm halay müzikle aynı vuruşta
+  const pose = horonPose(beats);
+
+  // Az kişiyle arkada kameraya bakan yay; CIRCLE_AT'ı geçince tam çember. Dış çember OUTER_R'ye
+  // ulaşınca taşanlar içte yeni çember kurar. Çemberler yavaşça sağa döner, yüzler hep merkeze.
+  const n = halay.length, circle = n > CIRCLE_AT, rings = [];
+  if (!circle) rings.push({ r: ARC_R, from: 0, cnt: n, step: SPACING / ARC_R, start: Math.PI + (n - 1) * SPACING / ARC_R / 2 });
+  else {
+    spin += dt * .12 * speed;
+    let r = Math.min(OUTER_R, Math.max(ARC_R, n * SPACING / (Math.PI * 2))), from = 0;
+    while (from < n) {
+      const cnt = Math.min(n - from, Math.max(3, Math.floor(Math.PI * 2 * r / SPACING)));
+      rings.push({ r, from, cnt, step: Math.PI * 2 / cnt, start: Math.PI + spin });
+      from += cnt; r = Math.max(.9, r - RING_GAP);
+    }
+  }
+  for (const g of rings) for (let j = 0; j < g.cnt; j++) {
+    const b = halay[g.from + j], th = g.start - j * g.step + pose.shift / g.r;
+    b.userData.target.set(CENTER.x + Math.sin(th) * g.r, 0, CENTER.z + Math.cos(th) * g.r * .9);
+    // Yüz her zaman çemberin içine dönük (kullanıcı kararı); kamera yukarıdan baktığı için öndekiler de okunur.
+    b.userData.targetRot = Math.atan2(-Math.sin(th), -Math.cos(th));
+  }
+  const radius = rings[0]?.r ?? ARC_R;
+  // Yayda görünen yarı genişlik; çemberde tam yarıçap.
+  const extent = circle ? radius : radius * Math.sin(Math.min(Math.PI / 2, ((rings[0]?.cnt ?? 1) - 1) * rings[0]?.step / 2 || 0)) + .6;
+
+  // Kamera çemberin tamamını sığdıracak uzaklığa çekilir; çember büyüdükçe yukarıdan daha dik bakar.
+  const hHalf = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+  const want = Math.max(5.2, (extent * 0.8 + .5) / Math.tan(hHalf));   // insanlar ~1.7 m: böceklerden kısa, kamera daha yakın
+  camDist += (want - camDist) * Math.min(1, dt * 1.5);
+  const elev = THREE.MathUtils.lerp(.3, .62, Math.min(1, (radius - ARC_R) / 2));
+  const wantPos = new THREE.Vector3(CENTER.x, 1 + Math.sin(elev) * camDist, CENTER.z + Math.cos(elev) * camDist);
+  const wantLook = new THREE.Vector3(CENTER.x, 1.45, CENTER.z - (circle ? 0.4 : ARC_R * 0.7));
+  const now = performance.now();
+  if (cam.shot && (now > cam.until || !cam.shot.parent)) { cam.shot = null; cam.next = now + 12000 + Math.random() * 6000; }
+  if (!cam.shot && now > cam.next) {
+    // Sıradaki ara çekim: orkestra, horon başı ya da gelin-damat (varsa)
+    const pool = [npcKemence, halay[0], roles.gelin ?? roles.damat].filter(Boolean);
+    closeUp(pool[Math.floor(Math.random() * pool.length)], 5);
+  }
+  if (cam.shot) {
+    // Kişinin yüzünü görecek şekilde baktığı yönden, biraz yukarıdan
+    const p = cam.shot.getWorldPosition(new THREE.Vector3()), fwd = new THREE.Vector3(Math.sin(cam.shot.rotation.y), 0, Math.cos(cam.shot.rotation.y));
+    wantLook.set(p.x, p.y + cam.h, p.z);
+    wantPos.copy(p).addScaledVector(fwd, cam.d).add(new THREE.Vector3(0, cam.h + 0.35, 0));
+  }
+  const k = Math.min(1, dt * (cam.shot ? 2.2 : 1.6));
+  cam.pos.lerp(wantPos, k); cam.look.lerp(wantLook, k);
+  camera.position.copy(cam.pos); camera.lookAt(cam.look);
+  // Hata ayıklama: konsoldan bocek.kamera = { konum: [x, y, z], bak: [x, y, z] } ile kamera sabitlenir
+  if (window.bocek?.kamera) { camera.position.set(...window.bocek.kamera.konum); camera.lookAt(...window.bocek.kamera.bak); }
+
+  for (const b of [...halay, roles.gelin, roles.damat, roles.davulcu].filter(Boolean)) {
+    const u = b.userData, { arms, legs } = u, inHalay = halay.includes(b), leader = halay[0] === b;
+    const flat = new THREE.Vector3(u.target.x - b.position.x, 0, u.target.z - b.position.z);
+    if (flat.length() > .4) {
+      // Yerine yürür: kol-bacak çapraz.
+      const w = Math.sin(t * 9);
+      b.position.addScaledVector(flat.normalize(), dt * 3.2); b.position.y = Math.abs(w) * .05;
+      b.rotation.y = angleLerp(b.rotation.y, Math.atan2(flat.x, flat.z), Math.min(1, dt * 10)); b.rotation.z = 0;
+      for (const k of ['R', 'L']) { const sg = k === 'R' ? 1 : -1;
+        legs[k].hip.rotation.set(.5 * w * sg, 0, 0); legs[k].knee.rotation.x = Math.max(0, -.6 * w * sg);
+        arms[k].shoulder.rotation.set(-.5 * w * sg, 0, arms[k].side * .15); arms[k].elbow.rotation.x = -.4; }
+      u.rig();
+      continue;
+    }
+    b.rotation.y = angleLerp(b.rotation.y, u.targetRot, Math.min(1, dt * 6));
+    let y = 0;
+    if (inHalay) {
+      y = pose.bodyY; b.rotation.z = pose.tilt;
+      u.head.rotation.x = Math.sin(beats * Math.PI) * .08;
+      for (const k of ['R', 'L']) {
+        const lp = pose[k], leg = legs[k], arm = arms[k];
+        leg.hip.rotation.set(lp.hipX, 0, -lp.hipZ); leg.knee.rotation.x = lp.knee;
+        arm.shoulder.rotation.set(pose.arm, 0, arm.side * HOLD); arm.shoulder.position.y = arm.y0 + pose.shrug; arm.elbow.rotation.x = -.45;
+      }
+      // Halay başı dış elinde (sağ) mendili havada sallar.
+      if (leader) { arms.R.shoulder.rotation.set(0, 0, -2.5 + Math.sin(t * 6 * speed) * .25); arms.R.elbow.rotation.x = -.4; }
+    } else {
+      b.rotation.z = 0; u.head.rotation.x = 0;
+      for (const k of ['R', 'L']) { legs[k].hip.rotation.set(0, 0, 0); legs[k].knee.rotation.x = 0; }
+      if (b === roles.davulcu) {
+        y = drumPose(b);
+      } else {
+        const c = Math.abs(Math.sin(beats * Math.PI));   // gelin damat vuruşa el çırpar
+        for (const k of ['R', 'L']) { arms[k].shoulder.rotation.set(-1.1, 0, arms[k].side * (.12 + .3 * c)); arms[k].elbow.rotation.x = -.9; }
+        y = Math.sin(t * 2) * .02;
+      }
+    }
+    b.position.x += (u.target.x - b.position.x) * Math.min(1, dt * 8);
+    b.position.z += (u.target.z - b.position.z) * Math.min(1, dt * 8);
+    b.position.y = u.target.y + y;
+    u.rig();
+  }
+  // Orkestra (izleyici davulcu olduysa orkestranın davulcusu gizli)
+  if (npcDrum.visible) { npcDrum.position.y = DRUM_SPOT.y + drumPose(npcDrum); npcDrum.userData.rig(); }
+  npcZurna.position.y = ZURNA_SPOT.y + zurnaPose(npcZurna); npcZurna.userData.rig();
+  npcKemence.position.y = KEMENCE_SPOT.y + kemencePose(npcKemence); npcKemence.userData.rig();
+  if (halay[0]) { const w = halay[0].userData.arms.R.wrist; if (mendil.parent !== w) w.add(mendil); mendil.position.set(0, -.15, 0); mendil.rotation.z = Math.sin(t * 9 * speed) * .6; }
+  else mendil.removeFromParent();
+
+  for (let i = fireworks.length - 1; i >= 0; i--) {
+    const f = fireworks[i]; f.life += dt;
+    const a = f.p.geometry.attributes.position;
+    for (let j = 0; j < f.vel.length; j++) { f.vel[j].y -= 2.2 * dt; f.vel[j].multiplyScalar(1 - dt * 1.4); a.setXYZ(j, a.getX(j) + f.vel[j].x * dt, a.getY(j) + f.vel[j].y * dt, a.getZ(j) + f.vel[j].z * dt); }
+    a.needsUpdate = true; f.p.material.opacity = Math.max(0, 1 - (f.life / f.max) ** 2) * (.75 + .25 * Math.sin(f.life * 40));   // söner ve göz kırpar
+    if (f.life > f.max) { scene.remove(f.p); f.p.geometry.dispose(); fireworks.splice(i, 1); }
+  }
+  composer.render(); labels.render(scene, camera);
+}
+// Telefonda saniyede 30 kare: yayın da aynı telefonda çalışıyor, işlemci sese yetişsin
+let lastFrame = 0;
+(function loop(now = 0) {
+  requestAnimationFrame(loop);
+  if (PHONE && now - lastFrame < 48) return;   // telefonda 20 kare/sn: uzun yayında ısınıp sesi kesmesin
+  lastFrame = now; tick();
+})();
+</script>
+</body>
+</html>

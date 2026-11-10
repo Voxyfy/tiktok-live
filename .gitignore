@@ -1,0 +1,21 @@
+# Bağımlılıklar ve sistem dosyaları
+node_modules/
+.DS_Store
+*.log
+.env
+
+# Telifli müzik depoya girmez: herkes kendi parçasını koyar (README > Müzik).
+# Tempo haritası şarkıdan üretildiği için o da yerelde kalır.
+public/audio/*
+!public/audio/.gitkeep
+
+# 3D modeller depoya girmez (README > Modeller): köy ve çalgılar Blender betiğiyle üretilir,
+# karakterler yapay zekâ ile üretilip blender/insan.py ile hazırlanır.
+public/models/*
+!public/models/.gitkeep
+
+# koy.py'nin pişirdiği doku (yeniden üretilebilir)
+blender/_tex/
+# Yapay zekâ ham görselleri ve iskeletli ham modeller
+blender/kaynak/
+__pycache__/

@@ -1,0 +1,19 @@
+{
+  "name": "bocek-dugunu",
+  "version": "1.0.0",
+  "description": "TikTok LIVE etkileşimli böcek düğünü (halay + takı + havai fişek)",
+  "main": "index.js",
+  "scripts": {
+    "test": "node --test",
+    "start": "node server.js",
+    "fake": "node server.js --fake"
+  },
+  "keywords": [],
+  "author": "Batuhan Haymana <haymana.batuhan@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "tiktok-live-connector": "^2.5.0",
+    "ws": "^8.22.2"
+  }
+}
